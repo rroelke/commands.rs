@@ -2,11 +2,12 @@
 
 #[macro_export]
 macro_rules! commands {
-    (with $commands:ident : $ret:ty = {$(($($cmd:expr),+) ~ ($($name:ident : $arg:ty),*) => $code:expr),+},
+    (with $commands:ident : $ret:ty = {$(($($cmd:expr),+) ~ ($($name:ident : $arg:ty),*) => $code:expr),*},
             do : $action:expr) => ({
         use std::collections::hash_map::HashMap;
 
-        let mut help : HashMap<String, String> = HashMap::new();
+        /* help map could be empty if there are no commands */
+        let mut _help : HashMap<String, String> = HashMap::new();
         $({ /* put command in help message map */
             let mut _usage : String = String::new();
             $(
@@ -15,8 +16,8 @@ macro_rules! commands {
                 _usage.push_str("> ");
             )*
             /* then put usage string into help map with all command names */
-            $(help.insert(String::from_str($cmd), String::from_str($cmd) + _usage);)+
-        })+
+            $(_help.insert(String::from_str($cmd), String::from_str($cmd) + _usage);)*
+        })*
 
         /* now build the mapping from command name to functions */
         {
@@ -29,7 +30,7 @@ macro_rules! commands {
                     let mut _i : uint = 0;
                     $(let mut $name : $arg; _i += 1;)*
                     if _i != argv.len() {
-                        return Err(format!("error: usage: {}", help[String::from_str(_cmd)]))
+                        return Err(format!("error: usage: {}", _help[String::from_str(_cmd)]))
                     }
                     let mut _j : uint = 0;
                     $(
@@ -44,15 +45,15 @@ macro_rules! commands {
                     Ok(Some($code))
                 };
                 commands.insert(_command_num, command);
-                $(index_map.insert(String::from_str($cmd), _command_num);)+
+                $(index_map.insert(String::from_str($cmd), _command_num);)*
                 _command_num += 1;
-            })+
+            })*
 
             /* make "help" command */
             let mut help_cmd : String = String::from_str("Commands:\n");
             for cmd in index_map.keys() {
                 help_cmd.push('\t');
-                help_cmd.push_str(help[*cmd].as_slice());
+                help_cmd.push_str(_help[*cmd].as_slice());
                 help_cmd.push('\n');
             }
 
