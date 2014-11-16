@@ -8,7 +8,7 @@ macro_rules! commands {
         use std::collections::hash_map::HashMap;
 
         /* help map could be empty if there are no commands */
-        let mut _help : HashMap<String, String> = HashMap::new();
+        let mut __help : HashMap<String, String> = HashMap::new();
         $({ /* put command in help message map */
             let mut _usage : String = format!(" ");
             $(
@@ -24,70 +24,70 @@ macro_rules! commands {
                 _usage.push_str("[...]*");
             }
             /* then put usage string into help map with all command names */
-            $(_help.insert(String::from_str($cmd), String::from_str($cmd) + _usage);)*
+            $(__help.insert(String::from_str($cmd), String::from_str($cmd) + _usage);)*
         })*
 
         /* now build the mapping from command name to functions */
         {
-            let mut index_map : HashMap<String, uint> = HashMap::new();
-            let mut commands : HashMap<uint, |&str, &[&str]| -> Result<Option<$ret>, String>> = HashMap::new();
+            let mut __index_map : HashMap<String, uint> = HashMap::new();
+            let mut __commands : HashMap<uint, |&str, &[&str]| -> Result<Option<$ret>, String>> = HashMap::new();
 
-            let mut _command_num : uint = 0;
+            let mut __command_num : uint = 0;
             $({ /* for each command, give it a map entry */
                 let command = |_cmd : &str, argv : &[&str]| -> Result<Option<$ret>, String> {
                     /* first count the expected number of arguments */
-                    let mut _i : uint = 0;
-                    $(let mut $name : $arg; _i += 1;)*
-                    if argv.len() < _i {
-                        return Err(format!("error: usage: {}", _help[String::from_str(_cmd)]))
+                    let mut __i : uint = 0;
+                    $(let mut $name : $arg; __i += 1;)*
+                    if argv.len() < __i {
+                        return Err(format!("error: usage: {}", __help[String::from_str(_cmd)]))
                     }
 
                     /* then copy remaining arguments to ... identifiers, if any */
-                    let mut _k : uint = 0;
-                    $(let $argv : &[&str] = argv.slice_from(_i); _k += 1;)*
-                    if _k == 0 && argv.len() > _i {
-                        return Err(format!("error: usage: {}", _help[String::from_str(_cmd)]))
+                    let mut __k : uint = 0;
+                    $(let $argv : &[&str] = argv.slice_from(__i); __k += 1;)*
+                    if __k == 0 && argv.len() > __i {
+                        return Err(format!("error: usage: {}", __help[String::from_str(_cmd)]))
                     }
 
                     /* finally, actually parse out the typed arguments */
-                    let mut _j : uint = 0;
+                    let mut __j : uint = 0;
                     $(
-                        $name = match from_str::<$arg>(argv[_j]) {
+                        $name = match from_str::<$arg>(argv[__j]) {
                             Some(val) => val,
                             None => return Err(format!("error: {}: not a {}: {}",
-                                                   _cmd, stringify!($arg), argv[_j]))
+                                                   _cmd, stringify!($arg), argv[__j]))
                         };
-                        _j += 1;
+                        __j += 1;
                     )*
-                    assert_eq!(_j, _i);
+                    assert_eq!(__j, __i);
                     Ok(Some($code))
                 };
-                commands.insert(_command_num, command);
-                $(index_map.insert(String::from_str($cmd), _command_num);)*
-                _command_num += 1;
+                __commands.insert(__command_num, command);
+                $(__index_map.insert(String::from_str($cmd), __command_num);)*
+                __command_num += 1;
             })*
 
             /* make "help" command */
-            let mut help_cmd : String = String::from_str("Commands:\n");
-            for cmd in index_map.keys() {
-                help_cmd.push('\t');
-                help_cmd.push_str(_help[*cmd].as_slice());
-                help_cmd.push('\n');
-            }
+            let mut __help_cmd : String = String::from_str("Commands:\n");
+            $(
+                $(
+                    __help_cmd.push_str(format!("\t{}\n", __help[String::from_str($cmd)]).as_slice());
+                )+
+            )*
 
-            commands.insert(_command_num, |_cmd : &str, _argv : &[&str]| {
-                println!("{}", help_cmd);
+            __commands.insert(__command_num, |_cmd : &str, _argv : &[&str]| {
+                println!("{}", __help_cmd);
                 Ok(None)
             });
-            index_map.insert(String::from_str("help"), _command_num);
+            __index_map.insert(String::from_str("help"), __command_num);
 
             let $commands = |cmd : &str, argv : &[&str]| -> Result<Option<$ret>, String> {
-                match index_map.get(&String::from_str(cmd)) {
-                    Some(index) => match commands.get_mut(index) {
+                match __index_map.get(&String::from_str(cmd)) {
+                    Some(index) => match __commands.get_mut(index) {
                         Some(ref mut f) => (**f)(cmd, argv),
                         None => unreachable!()
                     },
-                    None => Err(format!("error: unknown command: {}\nType 'help' to list commands.", cmd))
+                    None => Err(format!("error: unknown command: {}\nType 'help' to list __commands.", cmd))
                 }
             };
 
