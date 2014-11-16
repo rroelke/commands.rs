@@ -2,8 +2,10 @@
 
 #[macro_export]
 macro_rules! commands {
-    (with $commands:ident = {$(($($cmd:expr),+) ~ ($($name:ident : $arg:ty)*) => $code:expr),+}, do : $action:expr) => ({
+    (with $commands:ident : $ret:ty = {$(($($cmd:expr),+) ~ ($($name:ident : $arg:ty)*) => $code:expr),+},
+            do : $action:expr) => ({
         use std::collections::hash_map::HashMap;
+
         let mut help : HashMap<String, String> = HashMap::new();
         $({ /* put command in help message map */
             let mut _usage : String = String::new();
@@ -19,11 +21,11 @@ macro_rules! commands {
         /* now build the mapping from command name to functions */
         {
             let mut index_map : HashMap<String, uint> = HashMap::new();
-            let mut commands : HashMap<uint, |&str, &[&str]| -> Result<(), String>> = HashMap::new();
+            let mut commands : HashMap<uint, |&str, &[&str]| -> Result<Option<$ret>, String>> = HashMap::new();
 
             let mut _command_num : uint = 0;
             $({ /* for each command, give it a map entry */
-                let command = |_cmd : &str, argv : &[&str]| -> Result<(), String> {
+                let command = |_cmd : &str, argv : &[&str]| -> Result<Option<$ret>, String> {
                     let mut _i : uint = 0;
                     $(let mut $name : $arg;)*
                     $(
@@ -42,8 +44,7 @@ macro_rules! commands {
                     if _i < argv.len() {
                         return Err(format!("error: usage: {}", help[String::from_str(_cmd)]))
                     }
-                    {$code};
-                    Ok(())
+                    Ok(Some($code))
                 };
                 commands.insert(_command_num, command);
                 $(index_map.insert(String::from_str($cmd), _command_num);)+
@@ -60,11 +61,11 @@ macro_rules! commands {
 
             commands.insert(_command_num, |_cmd : &str, _argv : &[&str]| {
                 println!("{}", help_cmd);
-                Ok(())
+                Ok(None)
             });
             index_map.insert(String::from_str("help"), _command_num);
 
-            let $commands = |cmd : &str, argv : &[&str]| -> Result<(), String> {
+            let $commands = |cmd : &str, argv : &[&str]| -> Result<Option<$ret>, String> {
                 match index_map.get(&String::from_str(cmd)) {
                     Some(index) => match commands.get_mut(index) {
                         Some(ref mut f) => (**f)(cmd, argv),

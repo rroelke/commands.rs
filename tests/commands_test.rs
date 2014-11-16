@@ -3,7 +3,7 @@
 
 extern crate commands;
 
-fn is_usage_error(result : Result<(), String>) -> bool {
+fn is_usage_error<T>(result : Result<Option<T>, String>) -> bool {
     if result.is_ok() {
         false
     }
@@ -17,7 +17,7 @@ fn is_usage_error(result : Result<(), String>) -> bool {
 #[test]
 fn test_commands() {
     commands! {
-        with commands = {
+        with commands : () = {
             ("hello") ~ (say : String) => println!("hello"),
             ("sup", "yo") ~ () => println!("sup"),
             ("eat", "e") ~ (a : uint) => println!("eating {}", a)
