@@ -2,19 +2,27 @@
 
 #[macro_export]
 macro_rules! commands {
-    (with $commands:ident : $ret:ty = {$(($($cmd:expr),+) ~ ($($name:ident : $arg:ty),*) => $code:expr),*},
-            do : $action:expr) => ({
+    (with $commands:ident : $ret:ty =
+    {$(($($cmd:expr),+) ~ ($($name:ident : $arg:ty),*)$(($argv:ident : ...))* => $code:expr),*},
+     do : $action:expr) => ({
         use std::collections::hash_map::HashMap;
 
         /* help map could be empty if there are no commands */
         let mut _help : HashMap<String, String> = HashMap::new();
         $({ /* put command in help message map */
-            let mut _usage : String = String::new();
+            let mut _usage : String = format!(" ");
             $(
-                _usage.push_str(" <");
+                _usage.push_str("<");
                 _usage.push_str(stringify!($arg));
                 _usage.push_str("> ");
             )*
+            /* add ... if there are varargs */
+            let mut _v : uint = 0;
+            $(assert!(Some(stringify!($argv)).is_some()); /* no-op, to iterate over argvs */
+              _v += 1)*;
+            if _v > 0 {
+                _usage.push_str("[...]*");
+            }
             /* then put usage string into help map with all command names */
             $(_help.insert(String::from_str($cmd), String::from_str($cmd) + _usage);)*
         })*
@@ -27,11 +35,21 @@ macro_rules! commands {
             let mut _command_num : uint = 0;
             $({ /* for each command, give it a map entry */
                 let command = |_cmd : &str, argv : &[&str]| -> Result<Option<$ret>, String> {
+                    /* first count the expected number of arguments */
                     let mut _i : uint = 0;
                     $(let mut $name : $arg; _i += 1;)*
-                    if _i != argv.len() {
+                    if argv.len() < _i {
                         return Err(format!("error: usage: {}", _help[String::from_str(_cmd)]))
                     }
+
+                    /* then copy remaining arguments to ... identifiers, if any */
+                    let mut _k : uint = 0;
+                    $(let $argv : &[&str] = argv.slice_from(_i); _k += 1;)*
+                    if _k == 0 && argv.len() > _i {
+                        return Err(format!("error: usage: {}", _help[String::from_str(_cmd)]))
+                    }
+
+                    /* finally, actually parse out the typed arguments */
                     let mut _j : uint = 0;
                     $(
                         $name = match from_str::<$arg>(argv[_j]) {
@@ -41,7 +59,7 @@ macro_rules! commands {
                         };
                         _j += 1;
                     )*
-                    assert_eq!(_j, argv.len());
+                    assert_eq!(_j, _i);
                     Ok(Some($code))
                 };
                 commands.insert(_command_num, command);

@@ -160,3 +160,51 @@ fn test_shadowing() {
         }
     }
 }
+
+#[test]
+fn test_argv() {
+    commands! {
+        with c : Vec<String> = {
+            ("args") ~ ()(argv : ...) => argv.iter().map(|s| String::from_str(*s)).collect()
+        },
+        do : {
+            let mut v : Vec<String> = c("args", vec![].as_slice()).unwrap().unwrap();
+            assert!(v.is_empty());
+
+            v = c("args", vec!["a"].as_slice()).unwrap().unwrap();
+            assert_eq!(v, vec![String::from_str("a")]);
+
+            v = c("args", vec!["a", "b"].as_slice()).unwrap().unwrap();
+            assert_eq!(v, vec![String::from_str("a"), String::from_str("b")]);
+        }
+    }
+
+    commands! {
+        with c : uint = {
+            ("add") ~ (b : uint)(argv : ...) => {
+                let mut sum : uint = b;
+                for arg in argv.iter() {
+                    match from_str::<uint>(*arg) {
+                        None => return Err(format!("not a uint: {}", arg)),
+                        Some(u) => sum += u
+                    }
+                }
+
+                sum
+            }
+        },
+        do : {
+            assert!(is_usage_error("add", c("add", vec![].as_slice())));
+            assert_eq!(12u, c("add", vec!["12"].as_slice()).unwrap().unwrap());
+            assert_eq!(12u, c("add", vec!["11", "1"].as_slice()).unwrap().unwrap());
+            assert_eq!(12u, c("add", vec!["9", "2", "1"].as_slice()).unwrap().unwrap());
+
+
+            assert!(is_type_error!("add", uint, c("add", vec!["a", "7"].as_slice())));
+            assert_eq!(c("add", vec!["7", "a"].as_slice()).err().unwrap(),
+                        String::from_str("not a uint: a"));
+            assert_eq!(c("add", vec!["7", "8", "b"].as_slice()).err().unwrap(),
+                        String::from_str("not a uint: b"));
+        }
+    }
+}
