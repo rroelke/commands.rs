@@ -2,7 +2,7 @@
 
 #[macro_export]
 macro_rules! commands {
-    (with $commands:ident : $ret:ty = {$(($($cmd:expr),+) ~ ($($name:ident : $arg:ty)*) => $code:expr),+},
+    (with $commands:ident : $ret:ty = {$(($($cmd:expr),+) ~ ($($name:ident : $arg:ty),*) => $code:expr),+},
             do : $action:expr) => ({
         use std::collections::hash_map::HashMap;
 
@@ -27,23 +27,20 @@ macro_rules! commands {
             $({ /* for each command, give it a map entry */
                 let command = |_cmd : &str, argv : &[&str]| -> Result<Option<$ret>, String> {
                     let mut _i : uint = 0;
-                    $(let mut $name : $arg;)*
-                    $(
-                        if _i < argv.len() {
-                            $name = match from_str::<$arg>(argv[_i]) {
-                                Some(val) => val,
-                                None => return Err(format!("error: {}: not a {}: {}",
-                                                       _cmd, stringify!($arg), argv[_i]))
-                            };
-                        }
-                        else {
-                            return Err(format!("error: usage: {}", help[String::from_str(_cmd)]))
-                        }
-                        _i += 1;
-                    )*
-                    if _i < argv.len() {
+                    $(let mut $name : $arg; _i += 1;)*
+                    if _i != argv.len() {
                         return Err(format!("error: usage: {}", help[String::from_str(_cmd)]))
                     }
+                    let mut _j : uint = 0;
+                    $(
+                        $name = match from_str::<$arg>(argv[_j]) {
+                            Some(val) => val,
+                            None => return Err(format!("error: {}: not a {}: {}",
+                                                   _cmd, stringify!($arg), argv[_j]))
+                        };
+                        _j += 1;
+                    )*
+                    assert_eq!(_j, argv.len());
                     Ok(Some($code))
                 };
                 commands.insert(_command_num, command);
