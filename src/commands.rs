@@ -81,13 +81,14 @@ macro_rules! commands {
             });
             __index_map.insert(String::from_str("help"), __command_num);
 
+            /* lastly, define the closure that performs the action */
             let $commands = |cmd : &str, argv : &[&str]| -> Result<Option<$ret>, String> {
                 match __index_map.get(&String::from_str(cmd)) {
                     Some(index) => match __commands.get_mut(index) {
                         Some(ref mut f) => (**f)(cmd, argv),
                         None => unreachable!()
                     },
-                    None => Err(format!("error: unknown command: {}\nType 'help' to list __commands.", cmd))
+                    None => Err(format!("error: unknown command: {}\nType 'help' to list commands.", cmd))
                 }
             };
 
