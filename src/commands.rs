@@ -78,24 +78,3 @@ macro_rules! commands {
         }
     })
 }
-
-macro_rules! do_cmd(
-    ($cmds:ident : $name:expr) => {
-        match index_map.get(&$name) {
-            Some(index) => match $cmds.get_mut(index) {
-                Some(ref mut f) => (**f)($name, Vec::new().as_slice()),
-                None => unreachable!()
-            },
-            None => println!("error: unknown command: {}\nType 'help' to list commands.", $name)
-        }
-    };
-    ($cmds:ident : $name:expr, $args:expr) => {
-        match index_map.get(&$name) {
-            Some(index) => match $cmds.get_mut(index) {
-                Some(ref mut f) => (**f)($name, $args),
-                None => unreachable!()
-            },
-            None => println!("error: unknown command: {}\nType 'help' to list commands.", $name)
-        }
-    }
-)
