@@ -19,30 +19,31 @@ macro_rules! commands {
         /* now build the mapping from command name to functions */
         {
             let mut index_map : HashMap<String, uint> = HashMap::new();
-            let mut commands : HashMap<uint, |&str, &[&str]| -> ()> = HashMap::new();
+            let mut commands : HashMap<uint, |&str, &[&str]| -> Result<(), String>> = HashMap::new();
 
             let mut _command_num : uint = 0;
             $({ /* for each command, give it a map entry */
-                let command = |_cmd : &str, argv : &[&str]| {
+                let command = |_cmd : &str, argv : &[&str]| -> Result<(), String> {
                     let mut _i : uint = 0;
                     $(let mut $name : $arg;)*
                     $(
                         if _i < argv.len() {
                             $name = match from_str::<$arg>(argv[_i]) {
                                 Some(val) => val,
-                                None => return println!("error: {}: not a {}: {}",
-                                                       _cmd, stringify!($arg), argv[_i])
+                                None => return Err(format!("error: {}: not a {}: {}",
+                                                       _cmd, stringify!($arg), argv[_i]))
                             };
                         }
                         else {
-                            return println!("error: usage: {}", help[String::from_str(_cmd)]);
+                            return Err(format!("error: usage: {}", help[String::from_str(_cmd)]))
                         }
                         _i += 1;
                     )*
-                    if _i > argv.len() {
-                        return println!("error: usage: {}", help[String::from_str(_cmd)])
+                    if _i < argv.len() {
+                        return Err(format!("error: usage: {}", help[String::from_str(_cmd)]))
                     }
-                    $code
+                    {$code};
+                    Ok(())
                 };
                 commands.insert(_command_num, command);
                 $(index_map.insert(String::from_str($cmd), _command_num);)+
@@ -59,16 +60,17 @@ macro_rules! commands {
 
             commands.insert(_command_num, |_cmd : &str, _argv : &[&str]| {
                 println!("{}", help_cmd);
+                Ok(())
             });
             index_map.insert(String::from_str("help"), _command_num);
 
-            let $commands = |cmd : &str, argv : &[&str]| {
+            let $commands = |cmd : &str, argv : &[&str]| -> Result<(), String> {
                 match index_map.get(&String::from_str(cmd)) {
                     Some(index) => match commands.get_mut(index) {
                         Some(ref mut f) => (**f)(cmd, argv),
                         None => unreachable!()
                     },
-                    None => println!("error: unknown command: {}\nType 'help' to list commands.", cmd)
+                    None => Err(format!("error: unknown command: {}\nType 'help' to list commands.", cmd))
                 }
             };
 
