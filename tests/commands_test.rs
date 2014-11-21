@@ -45,6 +45,22 @@ macro_rules! is_type_error(
 )
 
 #[test]
+fn test_help() {
+    commands! {
+        with c : () = {
+            "examine no arguments" : ("hello", "hi")() => println!("hello"),
+            "show arguments" : ("asdf", "crunch", "sup")(_a : uint, _b : String) => {},
+            "show varargs" : ("varargs")()(_args : ...) => {},
+            "show it all together" : ("s", "t", "g")(_a : uint, _b : String, _c : f64)(_args : ...) => {}
+        },
+        do : {
+            assert!(c("help", vec![].as_slice()).unwrap().is_none());
+        }
+    }
+    /* insert a panic somewhere to see the command output */
+}
+
+#[test]
 /* check that the proper command is invoked with the proper name,
  * and generates the correct result
  */
