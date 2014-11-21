@@ -8,23 +8,23 @@ macro_rules! commands {
         use std::collections::hash_map::HashMap;
 
         /* help map could be empty if there are no commands */
-        let mut __help : HashMap<String, String> = HashMap::new();
+        let mut __usage : HashMap<String, String> = HashMap::new();
         $({ /* put command in help message map */
-            let mut _usage : String = format!(" ");
+            let mut __cmd_usage : String = format!(" ");
             $(
-                _usage.push_str("<");
-                _usage.push_str(stringify!($arg));
-                _usage.push_str("> ");
+                __cmd_usage.push_str("<");
+                __cmd_usage.push_str(stringify!($arg));
+                __cmd_usage.push_str("> ");
             )*
             /* add ... if there are varargs */
             let mut _v : uint = 0;
             $(assert!(Some(stringify!($argv)).is_some()); /* no-op, to iterate over argvs */
               _v += 1)*;
             if _v > 0 {
-                _usage.push_str("[...]*");
+                __cmd_usage.push_str("[...]*");
             }
             /* then put usage string into help map with all command names */
-            $(__help.insert(String::from_str($cmd), String::from_str($cmd) + _usage);)*
+            $(__usage.insert(String::from_str($cmd), String::from_str($cmd) + __cmd_usage);)*
         })*
 
         /* now build the mapping from command name to functions */
@@ -39,14 +39,14 @@ macro_rules! commands {
                     let mut __i : uint = 0;
                     $(let mut $name : $arg; __i += 1;)*
                     if argv.len() < __i {
-                        return Err(format!("error: usage: {}", __help[String::from_str(_cmd)]))
+                        return Err(format!("error: usage: {}", __usage[String::from_str(_cmd)]))
                     }
 
                     /* then copy remaining arguments to ... identifiers, if any */
                     let mut __k : uint = 0;
                     $(let $argv : &[&str] = argv.slice_from(__i); __k += 1;)*
                     if __k == 0 && argv.len() > __i {
-                        return Err(format!("error: usage: {}", __help[String::from_str(_cmd)]))
+                        return Err(format!("error: usage: {}", __usage[String::from_str(_cmd)]))
                     }
 
                     /* finally, actually parse out the typed arguments */
@@ -71,7 +71,7 @@ macro_rules! commands {
             let mut __help_cmd : String = String::from_str("Commands:\n");
             $(
                 $(
-                    __help_cmd.push_str(format!("\t{}\n", __help[String::from_str($cmd)]).as_slice());
+                    __help_cmd.push_str(format!("\t{}\n", __usage[String::from_str($cmd)]).as_slice());
                 )+
             )*
 
