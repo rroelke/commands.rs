@@ -3,7 +3,7 @@
 #[macro_export]
 macro_rules! commands {
     (with $commands:ident : $ret:ty =
-    {$(($($cmd:expr),+) ~ ($($name:ident : $arg:ty),*)$(($argv:ident : ...))* => $code:expr),*},
+    {$($desc:expr : ($($cmd:expr),+)($($name:ident : $arg:ty),*)$(($argv:ident : ...))* => $code:expr),*},
      do : $action:expr) => ({
         use std::collections::hash_map::HashMap;
 

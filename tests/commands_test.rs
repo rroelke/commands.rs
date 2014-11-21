@@ -51,10 +51,10 @@ macro_rules! is_type_error(
 fn test_commands() {
     commands! {
         with commands : () = {
-            ("hello") ~ (say : String) => println!("hello"),
-            ("sup", "yo") ~ () => println!("sup"),
-            ("eat", "e") ~ (a : uint) => println!("eating {}", a),
-            ("point") ~ (x : uint, y : f64) => println!("x + y = {}", x as f64 + y)
+            "say hello" : ("hello")(say : String) => println!("hello"),
+            "say sup" : ("sup", "yo")() => println!("sup"),
+            "eat an amount" : ("eat", "e")(a : uint) => println!("eating {}", a),
+            "sum two numbers" : ("point")(x : uint, y : f64) => println!("x + y = {}", x as f64 + y)
         },
         do : {
             assert!(commands("sup", vec![].as_slice()).is_ok());
@@ -66,8 +66,8 @@ fn test_commands() {
 
     commands! {
         with c : uint = {
-            ("add", "a") ~ (x : uint, y : uint) => x + y,
-            ("sub", "s") ~ (x : uint, y : uint) => x - y
+            "add two numbers" : ("add", "a")(x : uint, y : uint) => x + y,
+            "subtract two numbers" : ("sub", "s")(x : uint, y : uint) => x - y
         },
         do : {
             assert_eq!(20u, c("add", vec!["12", "8"].as_slice()).unwrap().unwrap());
@@ -82,9 +82,9 @@ fn test_commands() {
 fn test_errors() {
     commands! {
         with c : () = {
-            ("zero") ~ () => println!("zero"),
-            ("one") ~ (a1 : uint) => println!("one: {}", a1),
-            ("two") ~ (a1 : uint, a2 : f64) => println!("two: {}, {}", a1, a2)
+            "print 'zero'" : ("zero")() => println!("zero"),
+            "print one argument" : ("one")(a1 : uint) => println!("one: {}", a1),
+            "print two arguments" : ("two")(a1 : uint, a2 : f64) => println!("two: {}, {}", a1, a2)
         },
         do : {
             /* any number of arguments is an error for the zero command */
@@ -122,12 +122,12 @@ fn test_shadowing() {
     /* make sure commands are shadowed */
     commands! {
         with c : () = {
-            ("hello") ~ () => println!("hello")
+            "print 'hello'" : ("hello")() => println!("hello")
         },
         do : {
             commands! {
                 with d : () = {
-                    ("greet") ~ () => println!("greet")
+                    "greet the user" : ("greet")() => println!("greet")
                 },
                 do : {
                     assert!(is_help("hello", d("hello", &[])));
@@ -139,7 +139,7 @@ fn test_shadowing() {
 
             commands! {
                 with e : () = {
-                    ("hello") ~ (greeting : String) => println!("hello {}", greeting)
+                    "say hello" : ("hello")(greeting : String) => println!("hello {}", greeting)
                 },
                 do : {
                     assert!(is_usage_error("hello", e("hello", &[])));
@@ -150,7 +150,7 @@ fn test_shadowing() {
 
             commands! {
                 with f : uint = {
-                    ("hello") ~ () => 5u
+                    "return 5" : ("hello")() => 5u
                 },
                 do : {
                     assert_eq!(5, f("hello", &[]).unwrap().unwrap());
@@ -165,7 +165,7 @@ fn test_shadowing() {
 fn test_argv() {
     commands! {
         with c : Vec<String> = {
-            ("args") ~ ()(argv : ...) => argv.iter().map(|s| String::from_str(*s)).collect()
+            "list args" : ("args")()(argv : ...) => argv.iter().map(|s| String::from_str(*s)).collect()
         },
         do : {
             let mut v : Vec<String> = c("args", vec![].as_slice()).unwrap().unwrap();
@@ -181,7 +181,7 @@ fn test_argv() {
 
     commands! {
         with c : uint = {
-            ("add") ~ (b : uint)(argv : ...) => {
+            "sum all arguments" : ("add")(b : uint)(argv : ...) => {
                 let mut sum : uint = b;
                 for arg in argv.iter() {
                     match from_str::<uint>(*arg) {
